@@ -39,7 +39,14 @@
     //import database
     include("../connection.php");
 
-    
+    // ── Handle confirmed deletion (NEW) ───────────────────────────
+    if (isset($_GET['confirmdelete'])) {
+        $delid = $_GET['confirmdelete'];
+        $database->query("DELETE FROM patient WHERE pid='$delid'");
+        header("location: patient.php");
+        exit();
+    }
+
     ?>
     <div class="container">
         <div class="menu">
@@ -89,6 +96,21 @@
                         <a href="patient.php" class="non-style-link-menu  non-style-link-menu-active"><div><p class="menu-text">Patients</p></a></div>
                     </td>
                 </tr>
+                <tr class="menu-row">
+    <td class="menu-btn menu-icon-patient">
+        <a href="specialties.php" class="non-style-link-menu"><div><p class="menu-text">Specialties</p></div></a>
+    </td>
+</tr>
+<tr class="menu-row">
+    <td class="menu-btn menu-icon-patient">
+        <a href="reports.php" class="non-style-link-menu"><div><p class="menu-text">Reports</p></div></a>
+    </td>
+</tr>
+<tr class="menu-row">
+    <td class="menu-btn menu-icon-settings">
+        <a href="settings.php" class="non-style-link-menu"><div><p class="menu-text">Settings</p></div></a>
+    </td>
+</tr>
 
             </table>
         </div>
@@ -261,7 +283,8 @@
                                         <div style="display:flex;justify-content: center;">
                                         
                                         <a href="?action=view&id='.$pid.'" class="non-style-link"><button  class="btn-primary-soft btn button-icon btn-view"  style="padding-left: 40px;padding-top: 12px;padding-bottom: 12px;margin-top: 10px;"><font class="tn-in-text">View</font></button></a>
-                                       
+                                        &nbsp;&nbsp;&nbsp;
+                                        <a href="?action=delete&id='.$pid.'&name='.$name.'" class="non-style-link"><button  class="btn-primary-soft btn button-icon btn-delete"  style="padding-left: 40px;padding-top: 12px;padding-bottom: 12px;margin-top: 10px;"><font class="tn-in-text">Delete</font></button></a>
                                         </div>
                                         </td>
                                     </tr>';
@@ -289,6 +312,8 @@
         
         $id=$_GET["id"];
         $action=$_GET["action"];
+
+        if($action=='view'){
             $sqlmain= "select * from patient where pid='$id'";
             $result= $database->query($sqlmain);
             $row=$result->fetch_assoc();
@@ -409,6 +434,31 @@
             </div>
             </div>
             ';
+
+        } elseif ($action=='delete') {
+            // ── Delete confirmation popup (NEW) ────────────────────
+            $nameget = $_GET["name"];
+            echo '
+            <div id="popup1" class="overlay">
+                    <div class="popup">
+                    <center>
+                        <h2>Are you sure?</h2>
+                        <a class="close" href="patient.php">&times;</a>
+                        <div class="content">
+                            You want to permanently delete this patient record<br><br>
+                            Patient Name: &nbsp;<b>'.substr($nameget,0,40).'</b><br><br>
+                            <span style="color:#dc3545;">This will also remove their appointment history.</span>
+                        </div>
+                        <div style="display: flex;justify-content: center;">
+                        <a href="patient.php?confirmdelete='.$id.'" class="non-style-link"><button  class="btn-primary btn"  style="display: flex;justify-content: center;align-items: center;margin:10px;padding:10px;background-color:#dc3545;border-color:#dc3545;"><font class="tn-in-text">&nbsp;Yes, Delete&nbsp;</font></button></a>&nbsp;&nbsp;&nbsp;
+                        <a href="patient.php" class="non-style-link"><button  class="btn-primary btn"  style="display: flex;justify-content: center;align-items: center;margin:10px;padding:10px;"><font class="tn-in-text">&nbsp;&nbsp;No&nbsp;&nbsp;</font></button></a>
+
+                        </div>
+                    </center>
+            </div>
+            </div>
+            ';
+        }
         
     };
 

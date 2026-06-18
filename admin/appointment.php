@@ -16,6 +16,12 @@
         .sub-table{
             animation: transitionIn-Y-bottom 0.5s;
         }
+        .status-pending   { background:#fff3cd;color:#856404;padding:3px 10px;border-radius:20px;font-size:11px;display:inline-block; }
+        .status-confirmed { background:#d1e7dd;color:#0f5132;padding:3px 10px;border-radius:20px;font-size:11px;display:inline-block; }
+        .status-cancelled { background:#f8d7da;color:#842029;padding:3px 10px;border-radius:20px;font-size:11px;display:inline-block; }
+        .status-completed { background:#e2e3e5;color:#383d41;padding:3px 10px;border-radius:20px;font-size:11px;display:inline-block; }
+        .status-select { font-size:11px;border:1px solid #e9ecef;border-radius:4px;padding:3px 6px;font-family:'Inter',sans-serif; }
+        .status-save-btn { background:var(--primarycolor);color:#fff;border:none;border-radius:4px;padding:4px 10px;font-size:11px;cursor:pointer;font-family:'Inter',sans-serif;margin-left:4px; }
 </style>
 </head>
 <body>
@@ -39,7 +45,14 @@
     //import database
     include("../connection.php");
 
-    
+    // ── Handle status update (NEW) ─────────────────────────────────
+    if (isset($_POST['update_status'])) {
+        $aid    = $_POST['aid'];
+        $status = $_POST['status'];
+        $database->query("UPDATE appointment SET status='$status' WHERE appoid='$aid'");
+        // fall through - rest of page still renders normally below
+    }
+
     ?>
     <div class="container">
         <div class="menu">
@@ -90,6 +103,21 @@
                         <a href="patient.php" class="non-style-link-menu"><div><p class="menu-text">Patients</p></a></div>
                     </td>
                 </tr>
+                <tr class="menu-row">
+    <td class="menu-btn menu-icon-patient">
+        <a href="specialties.php" class="non-style-link-menu"><div><p class="menu-text">Specialties</p></div></a>
+    </td>
+</tr>
+<tr class="menu-row">
+    <td class="menu-btn menu-icon-patient">
+        <a href="reports.php" class="non-style-link-menu"><div><p class="menu-text">Reports</p></div></a>
+    </td>
+</tr>
+<tr class="menu-row">
+    <td class="menu-btn menu-icon-settings">
+        <a href="settings.php" class="non-style-link-menu"><div><p class="menu-text">Settings</p></div></a>
+    </td>
+</tr>
 
             </table>
         </div>
@@ -127,15 +155,6 @@
 
                 </tr>
                
-                <!-- <tr>
-                    <td colspan="4" >
-                        <div style="display: flex;margin-top: 40px;">
-                        <div class="heading-main12" style="margin-left: 45px;font-size:20px;color:rgb(49, 49, 49);margin-top: 5px;">Schedule a Session</div>
-                        <a href="?action=add-session&id=none&error=0" class="non-style-link"><button  class="login-btn btn-primary btn button-icon"  style="margin-left:25px;background-image: url('../img/icons/add.svg');">Add a Session</font></button>
-                        </a>
-                        </div>
-                    </td>
-                </tr> -->
                 <tr>
                     <td colspan="4" style="padding-top:10px;width: 100%;" >
                     
@@ -197,8 +216,7 @@
                 </tr>
                 
                 <?php
-                    if($_POST){
-                        //print_r($_POST);
+                    if($_POST && isset($_POST['filter'])){
                         $sqlpt1="";
                         if(!empty($_POST["sheduledate"])){
                             $sheduledate=$_POST["sheduledate"];
@@ -211,9 +229,7 @@
                             $docid=$_POST["docid"];
                             $sqlpt2=" doctor.docid=$docid ";
                         }
-                        //echo $sqlpt2;
-                        //echo $sqlpt1;
-                        $sqlmain= "select appointment.appoid,schedule.scheduleid,schedule.title,doctor.docname,patient.pname,schedule.scheduledate,schedule.scheduletime,appointment.apponum,appointment.appodate from schedule inner join appointment on schedule.scheduleid=appointment.scheduleid inner join patient on patient.pid=appointment.pid inner join doctor on schedule.docid=doctor.docid";
+                        $sqlmain= "select appointment.appoid,schedule.scheduleid,schedule.title,doctor.docname,patient.pname,schedule.scheduledate,schedule.scheduletime,appointment.apponum,appointment.appodate,appointment.status from schedule inner join appointment on schedule.scheduleid=appointment.scheduleid inner join patient on patient.pid=appointment.pid inner join doctor on schedule.docid=doctor.docid";
                         $sqllist=array($sqlpt1,$sqlpt2);
                         $sqlkeywords=array(" where "," and ");
                         $key2=0;
@@ -224,13 +240,12 @@
                                 $key2++;
                             };
                         };
-                        //echo $sqlmain;
 
                         
                         
                         //
                     }else{
-                        $sqlmain= "select appointment.appoid,schedule.scheduleid,schedule.title,doctor.docname,patient.pname,schedule.scheduledate,schedule.scheduletime,appointment.apponum,appointment.appodate from schedule inner join appointment on schedule.scheduleid=appointment.scheduleid inner join patient on patient.pid=appointment.pid inner join doctor on schedule.docid=doctor.docid  order by schedule.scheduledate desc";
+                        $sqlmain= "select appointment.appoid,schedule.scheduleid,schedule.title,doctor.docname,patient.pname,schedule.scheduledate,schedule.scheduletime,appointment.apponum,appointment.appodate,appointment.status from schedule inner join appointment on schedule.scheduleid=appointment.scheduleid inner join patient on patient.pid=appointment.pid inner join doctor on schedule.docid=doctor.docid  order by schedule.scheduledate desc";
 
                     }
 
@@ -276,6 +291,10 @@
                                     Appointment Date
                                     
                                 </th>
+
+                                <th class="table-headin">
+                                    Status
+                                </th>
                                 
                                 <th class="table-headin">
                                     
@@ -292,7 +311,7 @@
 
                                 if($result->num_rows==0){
                                     echo '<tr>
-                                    <td colspan="7">
+                                    <td colspan="8">
                                     <br><br><br><br>
                                     <center>
                                     <img src="../img/notfound.svg" width="25%">
@@ -319,6 +338,15 @@
                                     $pname=$row["pname"];
                                     $apponum=$row["apponum"];
                                     $appodate=$row["appodate"];
+                                    $status=$row["status"] ?? 'pending';
+
+                                    // build the status dropdown options with current selection
+                                    $statusOptions = '';
+                                    foreach (['pending','confirmed','completed','cancelled'] as $opt) {
+                                        $sel = ($status == $opt) ? 'selected' : '';
+                                        $statusOptions .= "<option value=\"$opt\" $sel>".ucfirst($opt)."</option>";
+                                    }
+
                                     echo '<tr >
                                         <td style="font-weight:600;"> &nbsp;'.
                                         
@@ -342,11 +370,18 @@
                                             '.$appodate.'
                                         </td>
 
+                                        <td style="text-align:center;">
+                                            <span class="status-'.$status.'">'.ucfirst($status).'</span><br>
+                                            <form method="POST" style="margin-top:6px;display:flex;justify-content:center;align-items:center;">
+                                                <input type="hidden" name="aid" value="'.$appoid.'">
+                                                <select name="status" class="status-select">'.$statusOptions.'</select>
+                                                <button type="submit" name="update_status" class="status-save-btn">Save</button>
+                                            </form>
+                                        </td>
+
                                         <td>
                                         <div style="display:flex;justify-content: center;">
                                         
-                                        <!--<a href="?action=view&id='.$appoid.'" class="non-style-link"><button  class="btn-primary-soft btn button-icon btn-view"  style="padding-left: 40px;padding-top: 12px;padding-bottom: 12px;margin-top: 10px;"><font class="tn-in-text">View</font></button></a>
-                                       &nbsp;&nbsp;&nbsp;-->
                                        <a href="?action=drop&id='.$appoid.'&name='.$pname.'&session='.$title.'&apponum='.$apponum.'" class="non-style-link"><button  class="btn-primary-soft btn button-icon btn-delete"  style="padding-left: 40px;padding-top: 12px;padding-bottom: 12px;margin-top: 10px;"><font class="tn-in-text">Cancel</font></button></a>
                                        &nbsp;&nbsp;&nbsp;</div>
                                         </td>
